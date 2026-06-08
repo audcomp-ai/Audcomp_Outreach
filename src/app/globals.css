@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Audcomp AI Design Tokens ──────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --bg:             #F8FAFF;
+  --surface:        #FFFFFF;
+  --surface-2:      #EEF4FF;
+  --surface-hover:  #E0ECFF;
+
+  /* Borders */
+  --border:         #C7D9F5;
+  --border-subtle:  #E2ECFC;
+
+  /* Brand — Audcomp royal blue */
+  --brand:          #1B3A8C;
+  --brand-hover:    #162E72;
+  --brand-light:    #EEF4FF;
+
+  /* Accent — interactive blue */
+  --accent:         #2563EB;
+  --accent-hover:   #1D4ED8;
+  --accent-light:   #EFF6FF;
+
+  /* Text */
+  --text-primary:   #0F172A;
+  --text-secondary: #334155;
+  --text-muted:     #64748B;
+  --text-faint:     #94A3B8;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  font-family: 'Inter', 'Open Sans', system-ui, sans-serif;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #C7D9F5; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #93B4E8; }
+
+/* ── Table layout ────────────────────────────────────────────────── */
+.table-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--surface);
+}
+.sticky-col-2 {
+  position: sticky;
+  left: 200px;
+  z-index: 2;
+  background: var(--surface);
+}
+tr:hover .sticky-col,
+tr:hover .sticky-col-2 {
+  background: var(--surface-2);
+}
+
+/* ── Expanded row ────────────────────────────────────────────────── */
+.expanded-row td {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* ── Status select ───────────────────────────────────────────────── */
+.status-select {
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  background-image: none;
+}
+
+/* ── Pulse animation ─────────────────────────────────────────────── */
+@keyframes ping-slow {
+  75%, 100% { transform: scale(1.8); opacity: 0; }
+}
+.ping-slow { animation: ping-slow 2s cubic-bezier(0,0,0.2,1) infinite; }
+
+/* ── Fade in ─────────────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: fade-in 0.15s ease-out; }
+
+/* ── Brand gradient header ───────────────────────────────────────── */
+.brand-header {
+  background: linear-gradient(135deg, #1B3A8C 0%, #1E40AF 100%);
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls /Users/devamadhav/Desktop/AI/Outreach && mkdir -p /Users/devamadhav/Desktop/AI/Outreach/docs /Users/devamadhav/Desktop/AI/Outreach/tasks /Users/devamadhav/Desktop/AI/Outreach/.claude)"
+    ],
+    "additionalDirectories": [
+      "/Users/devamadhav/Desktop/AI/Outreach"
+    ]
+  }
+}

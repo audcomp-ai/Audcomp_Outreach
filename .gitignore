@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Environment files — NEVER commit these
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Firecrawl cache
+.firecrawl/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
