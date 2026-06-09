@@ -1,4 +1,4 @@
-import { inngest } from '@/lib/inngest'
+import { inngest, sendInngestEvent } from '@/lib/inngest'
 import { postToLeads, section, fields as slackFields, divider } from '@/services/slack'
 
 const SUPABASE_URL  = process.env.SUPABASE_URL!
@@ -311,10 +311,7 @@ export const scraperAgent = inngest.createFunction(
     // ── Step 5: Fire lead/created events → triggers enrichment agent ──
     await step.run('fire-enrichment-events', async () => {
       for (const { leadId, businessName } of newLeadIds) {
-        await inngest.send({
-          name: 'lead/created',
-          data: { leadId, businessName, industry },
-        })
+        await sendInngestEvent('lead/created', { leadId, businessName, industry })
       }
     })
 

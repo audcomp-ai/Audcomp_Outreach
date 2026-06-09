@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { inngest } from '@/lib/inngest'
+import { inngest, sendInngestEvent } from '@/lib/inngest'
 import { postToLeads, section, fields as slackFields } from '@/services/slack'
 import type { TechItem, ServiceFit } from '@/types'
 import dns from 'dns/promises'
@@ -516,10 +516,7 @@ Respond with JSON only (no markdown wrapper):
 
     // ── 14. Fire lead/enriched → campaign agent ───────────────────
     await step.run('fire-enriched-event', async () => {
-      await inngest.send({
-        name: 'lead/enriched',
-        data: { leadId, businessName, industry },
-      })
+      await sendInngestEvent('lead/enriched', { leadId, businessName, industry })
     })
 
     return { leadId, enriched: true, riskScore, techCount: finalTechStack.length }
