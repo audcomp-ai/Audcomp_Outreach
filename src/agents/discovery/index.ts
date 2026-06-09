@@ -155,13 +155,12 @@ export const scraperAgent = inngest.createFunction(
       const allRuns       = await sbGet('scraper_runs?select=id,status&order=started_at.asc')
       const completedRuns = (allRuns as { status: string }[]).filter(r => r.status === 'completed')
       const industryIndex = completedRuns.length % INDUSTRIES.length
-      // Map Slack natural language → PPE taxonomy if override came from Slack
+      // parser.ts now emits canonical Apollo taxonomy names directly
       const rawIndustry = overrideIndustry ?? INDUSTRIES[industryIndex]
-      // Normalize Slack aliases → Apollo taxonomy
+      // Safety normalization in case old aliases slip through
       const industryNorm = rawIndustry
-        .replace(/\s+firms?$/i, '')   // "Insurance firms" → "Insurance"
-        .replace(/^law$/i, 'Legal')   // "law" → "Legal"
-        .replace(/^legal\s+services$/i, 'Legal') // "Legal Services" → "Legal"
+        .replace(/\s+(firms?|companies|providers?)$/i, '')
+        .replace(/^law$/i, 'Legal')
       return {
         industry:       industryNorm,
         location:       overrideLocation ?? 'Ontario, Canada',

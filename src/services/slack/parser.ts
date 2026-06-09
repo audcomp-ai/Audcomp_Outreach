@@ -6,18 +6,29 @@ export type SlackIntent =
   | { action: 'campaigns' }
   | { action: 'unknown' }
 
-// ── Industry aliases → canonical names ───────────────────────────────
+// ── Industry aliases → canonical Apollo taxonomy names ───────────────
 const INDUSTRY_MAP: Record<string, string> = {
-  accounting:  'Accounting firms',
-  accountant:  'Accounting firms',
-  accountants: 'Accounting firms',
-  insurance:   'Insurance firms',
-  insurer:     'Insurance firms',
-  insurers:    'Insurance firms',
-  law:         'Law firms',
-  legal:       'Law firms',
-  lawyer:      'Law firms',
-  lawyers:     'Law firms',
+  accounting:  'Accounting',
+  accountant:  'Accounting',
+  accountants: 'Accounting',
+  cpa:         'Accounting',
+  insurance:   'Insurance',
+  insurer:     'Insurance',
+  insurers:    'Insurance',
+  law:         'Legal',
+  legal:       'Legal',
+  lawyer:      'Legal',
+  lawyers:     'Legal',
+  medical:     'Medical',
+  healthcare:  'Medical',
+  health:      'Medical',
+  clinic:      'Medical',
+  clinics:     'Medical',
+  doctor:      'Medical',
+  doctors:     'Medical',
+  dental:      'Medical',
+  dentist:     'Medical',
+  physician:   'Medical',
 }
 
 // ── Location aliases → canonical names ───────────────────────────────

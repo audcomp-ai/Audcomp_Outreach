@@ -139,13 +139,13 @@ async function handleIntent(
     section(':robot_face: *Audcomp AI — available commands:*'),
     section([
       '• `/scrape` — start next scheduled run',
-      '• `/scrape law firms in hamilton` — target specific industry & location',
+      '• `/scrape medical companies in hamilton` — target specific industry & location',
       '• `/aistatus` — last 5 runs + total lead count',
-      '• `/stop` — how to pause the scraper',
+      '• `/stop` — pause the scraper',
       '• `/campaigns` — count of pending email drafts',
       '',
-      '_Industries:_ accounting · insurance · law',
-      '_Locations:_ hamilton · burlington · oakville',
+      '_Industries:_ accounting · insurance · legal · medical',
+      '_Locations:_ hamilton · burlington · oakville · toronto · mississauga · brampton · markham',
     ].join('\n')),
   ], false) // ephemeral — only visible to the person who typed it
 }
