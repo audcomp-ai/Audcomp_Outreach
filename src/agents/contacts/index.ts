@@ -215,12 +215,27 @@ Respond with JSON only (no markdown, no wrapper):
   ]
 }`
 
-      const model  = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash' })
-      const result = await model.generateContent(prompt)
-      const raw    = result.response.text().trim()
-      const json   = raw.startsWith('{') ? raw : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
-      const parsed = JSON.parse(json) as { emails: { subject: string; body: string }[] }
-      return parsed.emails.slice(0, 3)
+      try {
+        const model  = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash' })
+        const result = await model.generateContent(prompt)
+        const raw    = result.response.text().trim()
+        const json   = raw.startsWith('{') ? raw : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
+        const parsed = JSON.parse(json) as { emails: { subject: string; body: string }[] }
+        return parsed.emails.slice(0, 3)
+      } catch (err) {
+        console.error('Gemini draft-email-sequence failed, using fallback:', err)
+        const subject1 = `IT support for ${bizName} — a ${industry.toLowerCase()} firm in ${city}`
+        const body1 = `Hi,\n\nWe work with ${industry.toLowerCase()} firms across the Hamilton area and noticed ${bizName} could benefit from managed IT support.\n\nAudcomp handles everything from cybersecurity to helpdesk — so your team can focus on clients, not computers.\n\nWorth a quick 15-min call?\n\nThe Audcomp Team`
+        const subject2 = `Following up — IT managed services for ${bizName}`
+        const body2 = `Hi,\n\nJust following up on my last note. We specialize in IT support for ${industry.toLowerCase()} firms in ${city} — compliance, security, and reliability.\n\nHappy to answer any questions.\n\nThe Audcomp Team`
+        const subject3 = `Last note — how we helped a ${industry.toLowerCase()} firm like ${bizName}`
+        const body3 = `Hi,\n\n${caseStudy}\n\nIf you're open to a quick conversation, I'd love to share how we could do the same for ${bizName}.\n\nThe Audcomp Team`
+        return [
+          { subject: subject1, body: body1 },
+          { subject: subject2, body: body2 },
+          { subject: subject3, body: body3 },
+        ]
+      }
     })
 
     // ── 4. Save 3-email sequence to campaigns table ───────────────
