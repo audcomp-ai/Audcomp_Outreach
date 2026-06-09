@@ -80,7 +80,7 @@ async function main() {
   console.log()
   console.log('Lead ID:', lead.id)
   console.log('Check campaigns tab in ~2 min:')
-  console.log('  https://leads-dashboard-rho-eight.vercel.app/campaigns')
+  console.log(`  ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://audcomp-outreach.vercel.app'}/campaigns`)
 }
 
 main().catch(e => { console.error(e); process.exit(1) })

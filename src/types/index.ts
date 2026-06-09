@@ -1,5 +1,23 @@
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'rejected' | 'converted'
 
+export interface TechItem {
+  name: string
+  category: 'CMS' | 'Email' | 'CRM' | 'Productivity' | 'Analytics' | 'Security' | 'Hosting' | 'Other'
+  signal: string
+}
+
+export interface ServiceFitItem {
+  score: number
+  reason: string
+}
+
+export interface ServiceFit {
+  infrastructure: ServiceFitItem
+  cybersecurity:  ServiceFitItem
+  helpdesk:       ServiceFitItem
+  backup_dr:      ServiceFitItem
+}
+
 export interface Lead {
   id: string
   business_name: string | null
@@ -27,14 +45,29 @@ export interface Lead {
   campaign_id: string | null
   created_at: string
   updated_at: string
-  // enrichment fields
-  google_reviews: string | null
+  // base enrichment
+  google_reviews: string | null       // JSON string: string[]
   website_summary: string | null
-  pain_points: string | null
+  pain_points: string | null          // JSON string: {signal,category,pitch_angle}[]
   linkedin_employees: number | null
   linkedin_description: string | null
   enrichment_status: 'pending' | 'running' | 'completed' | 'failed' | null
   enriched_at: string | null
+  // deep enrichment (005_deep_enrichment migration)
+  tech_stack: string | null           // JSON string: TechItem[]
+  service_fit: string | null          // JSON string: ServiceFit
+  it_maturity: number | null          // 1–5
+  risk_score: number | null           // 0–100
+  regulatory_exposure: string | null  // JSON string: {body,requirement,pitchAngle}
+  news_signal: string | null          // recent news headline/snippet
+  contact_is_technical: boolean | null
+  dns_mx: string | null               // detected email platform (Google/Microsoft/Other)
+  has_spf: boolean | null
+  has_dmarc: boolean | null
+  services_offered: string | null     // what this business does
+  // contact person (from PPE scraper)
+  contact_name: string | null
+  contact_title: string | null
 }
 
 export interface ScraperRun {
@@ -61,6 +94,8 @@ export interface Campaign {
   created_at: string
   reviewed_at: string | null
   sent_at: string | null
+  sequence_num: number
+  send_after: string | null
   lead?: {
     business_name: string | null
     email: string | null
@@ -72,6 +107,13 @@ export interface Campaign {
     linkedin_employees: number | null
     linkedin_description: string | null
     enrichment_status: string | null
+    tech_stack: string | null
+    service_fit: string | null
+    it_maturity: number | null
+    risk_score: number | null
+    services_offered: string | null
+    contact_name: string | null
+    contact_title: string | null
   }
 }
 

@@ -1,4 +1,4 @@
-import type { ScraperRun } from '@/lib/types'
+import type { ScraperRun } from '@/types'
 
 const INDUSTRIES = ['Accounting firms', 'Insurance firms', 'Law firms']
 

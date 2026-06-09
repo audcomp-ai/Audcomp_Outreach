@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifySlackRequest, postToCampaigns, section } from '@/lib/slack'
+import { verifySlackRequest, postToCampaigns, section } from '@/services/slack'
 
 const SUPABASE_URL = process.env.SUPABASE_URL!
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!

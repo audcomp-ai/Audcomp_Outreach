@@ -1,6 +1,6 @@
 'use client'
 
-import type { Lead } from '@/lib/types'
+import type { Lead } from '@/types'
 
 interface Props { leads: Lead[] }
 

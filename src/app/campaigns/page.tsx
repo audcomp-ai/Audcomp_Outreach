@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { Campaign, CAMPAIGN_STATUS_META } from '@/lib/types'
+import { Campaign, CAMPAIGN_STATUS_META } from '@/types'
 import CampaignsQueue from '@/components/CampaignsQueue'
 import AutoRefresh from '@/components/AutoRefresh'
 

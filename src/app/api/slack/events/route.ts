@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifySlackRequest, postToLeads, section, fields, divider } from '@/lib/slack'
-import { parseIntent, parseSlashCommand } from '@/lib/slack-parser'
+import { verifySlackRequest, postToLeads, section, fields, divider } from '@/services/slack'
+import { parseIntent, parseSlashCommand } from '@/services/slack/parser'
 import { inngest } from '@/lib/inngest'
 
 const SUPABASE_URL = process.env.SUPABASE_URL!
@@ -163,11 +163,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const valid = await verifySlackRequest(rawBody, timestamp, signature)
-  if (!valid) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-  }
-
   const contentType = req.headers.get('content-type') ?? ''
 
   // ── 1. JSON — URL verification challenge or event subscription ────────
@@ -177,9 +172,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Bad JSON' }, { status: 400 })
     }
 
-    // One-time URL verification during Slack app setup
+    // URL verification must respond before signature check — Slack sends
+    // this once during setup and expects the challenge echoed immediately.
     if (body.type === 'url_verification') {
       return NextResponse.json({ challenge: body.challenge })
+    }
+
+    const valid = await verifySlackRequest(rawBody, timestamp, signature)
+    if (!valid) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     // Natural language messages in #lead-agent
@@ -212,9 +213,14 @@ export async function POST(req: NextRequest) {
 
   // ── 2. Form-encoded — slash commands ─────────────────────────────────
   if (contentType.includes('application/x-www-form-urlencoded')) {
-    const params    = new URLSearchParams(rawBody)
-    const command   = params.get('command') ?? ''
-    const text      = params.get('text') ?? ''
+    const valid = await verifySlackRequest(rawBody, timestamp, signature)
+    if (!valid) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
+    }
+
+    const params  = new URLSearchParams(rawBody)
+    const command = params.get('command') ?? ''
+    const text    = params.get('text') ?? ''
 
     const intent   = parseSlashCommand(command, text)
     const response = await handleIntent(intent)
