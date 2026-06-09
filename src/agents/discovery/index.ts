@@ -216,7 +216,7 @@ export const scraperAgent = inngest.createFunction(
         seniority:            SENIORITY,
         companyEmployeeSize:  EMPLOYEE_SIZE,
         includeEmails:        true,
-        totalResults:         200,
+        totalResults:         100,
       })
       const ppeRunId = actorResp?.data?.id
       if (!ppeRunId) throw new Error('No run ID from Apify PPE actor')
@@ -227,9 +227,9 @@ export const scraperAgent = inngest.createFunction(
 
     // ── Step 3: Poll PPE until done ──────────────────────────────
     let ppeDatasetId: string | null = null
-    for (let attempt = 1; attempt <= 36; attempt++) {
+    for (let attempt = 1; attempt <= 20; attempt++) {
       const result = await step.run(`poll-apify-${attempt}`, async () => {
-        await new Promise(r => setTimeout(r, 5000))
+        await new Promise(r => setTimeout(r, 3000))
         const runData = await apifyGet(`actor-runs/${ppeRunId}`)
         return {
           status:    runData?.data?.status as string,
@@ -245,7 +245,7 @@ export const scraperAgent = inngest.createFunction(
 
     // ── Step 4: Fetch results and insert leads ───────────────────
     const { inserted, skipped, newLeadIds } = await step.run('insert-leads', async () => {
-      const items = await apifyGet(`datasets/${ppeDatasetId}/items?limit=200`)
+      const items = await apifyGet(`datasets/${ppeDatasetId}/items?limit=100`)
 
       let inserted = 0, skipped = 0
       const newLeadIds: { leadId: string; businessName: string | null }[] = []
