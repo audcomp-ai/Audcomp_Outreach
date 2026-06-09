@@ -35,12 +35,16 @@ async function handleIntent(
 
   // ── /scrape ───────────────────────────────────────────────────────────
   if (intent.action === 'scrape') {
-    // Clear pause flag so the scraper runs even if previously stopped
-    await fetch(`${SUPABASE_URL}/rest/v1/scraper_config?key=eq.paused`, {
-      method: 'PATCH',
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: 'false', updated_at: new Date().toISOString() }),
-    })
+    // Clear pause flag — non-fatal if Supabase is unreachable
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/scraper_config?key=eq.paused`, {
+        method: 'PATCH',
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value: 'false', updated_at: new Date().toISOString() }),
+      })
+    } catch (e) {
+      console.error('Failed to clear pause flag:', e)
+    }
 
     const desc = intent.industry
       ? `${intent.industry}${intent.location ? ` in ${intent.location.split(',')[0]}` : ''}`
