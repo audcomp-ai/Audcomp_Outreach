@@ -428,17 +428,22 @@ Respond with JSON only (no markdown wrapper):
   "it_maturity": 1-5
 }`
 
-      const model  = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash' })
-      const result = await model.generateContent(prompt)
-      const raw    = result.response.text().trim()
-      const json   = raw.startsWith('{') ? raw : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
-      return JSON.parse(json) as {
-        website_summary: string
-        services_offered: string
-        pain_points: { signal: string; category: string; pitch_angle: string }[]
-        tech_stack: TechItem[]
-        service_fit: ServiceFit
-        it_maturity: number
+      try {
+        const model  = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash' })
+        const result = await model.generateContent(prompt)
+        const raw    = result.response.text().trim()
+        const json   = raw.startsWith('{') ? raw : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
+        return JSON.parse(json) as {
+          website_summary: string
+          services_offered: string
+          pain_points: { signal: string; category: string; pitch_angle: string }[]
+          tech_stack: TechItem[]
+          service_fit: ServiceFit
+          it_maturity: number
+        }
+      } catch (err) {
+        console.error('Gemini analyze-intel failed:', err)
+        return null
       }
     })
 
