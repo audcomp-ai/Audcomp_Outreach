@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySlackRequest, postToLeads, section, fields, divider } from '@/services/slack'
 import { parseIntent, parseSlashCommand } from '@/services/slack/parser'
-import { inngest } from '@/lib/inngest'
 
 const SUPABASE_URL = process.env.SUPABASE_URL!
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY!
+const INNGEST_EVENT_KEY = process.env.INNGEST_EVENT_KEY!
+
+async function sendInngestEvent(name: string, data: Record<string, unknown>) {
+  const r = await fetch(`https://inn.gs/e/${INNGEST_EVENT_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, data }),
+  })
+  if (!r.ok) throw new Error(`Inngest event failed: ${r.status}`)
+}
 
 async function sbGet(path: string) {
   const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -50,12 +59,9 @@ async function handleIntent(
       ? `${intent.industry}${intent.location ? ` in ${intent.location.split(',')[0]}` : ''}`
       : 'next industry in rotation'
 
-    await inngest.send({
-      name: 'scraper/manual-trigger',
-      data: {
-        ...(intent.industry ? { industry: intent.industry } : {}),
-        ...(intent.location ? { location: intent.location } : {}),
-      },
+    await sendInngestEvent('scraper/manual-trigger', {
+      ...(intent.industry ? { industry: intent.industry } : {}),
+      ...(intent.location ? { location: intent.location } : {}),
     })
 
     return slackBlocks([
