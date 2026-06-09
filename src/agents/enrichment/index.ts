@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { inngest } from '@/lib/inngest'
+import { inngest, sendInngestEvent } from '@/lib/inngest'
 import { postToLeads, section, fields as slackFields } from '@/services/slack'
 import type { TechItem, ServiceFit } from '@/types'
 import dns from 'dns/promises'
@@ -428,17 +428,22 @@ Respond with JSON only (no markdown wrapper):
   "it_maturity": 1-5
 }`
 
-      const model  = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash' })
-      const result = await model.generateContent(prompt)
-      const raw    = result.response.text().trim()
-      const json   = raw.startsWith('{') ? raw : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
-      return JSON.parse(json) as {
-        website_summary: string
-        services_offered: string
-        pain_points: { signal: string; category: string; pitch_angle: string }[]
-        tech_stack: TechItem[]
-        service_fit: ServiceFit
-        it_maturity: number
+      try {
+        const model  = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash' })
+        const result = await model.generateContent(prompt)
+        const raw    = result.response.text().trim()
+        const json   = raw.startsWith('{') ? raw : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
+        return JSON.parse(json) as {
+          website_summary: string
+          services_offered: string
+          pain_points: { signal: string; category: string; pitch_angle: string }[]
+          tech_stack: TechItem[]
+          service_fit: ServiceFit
+          it_maturity: number
+        }
+      } catch (err) {
+        console.error('Gemini analyze-intel failed:', err)
+        return null
       }
     })
 
@@ -516,10 +521,7 @@ Respond with JSON only (no markdown wrapper):
 
     // ── 14. Fire lead/enriched → campaign agent ───────────────────
     await step.run('fire-enriched-event', async () => {
-      await inngest.send({
-        name: 'lead/enriched',
-        data: { leadId, businessName, industry },
-      })
+      await sendInngestEvent('lead/enriched', { leadId, businessName, industry })
     })
 
     return { leadId, enriched: true, riskScore, techCount: finalTechStack.length }
