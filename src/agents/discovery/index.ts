@@ -218,16 +218,19 @@ export const scraperAgent = inngest.createFunction(
       let inserted = 0, skipped = 0
       const newLeadIds: { leadId: string; businessName: string | null }[] = []
 
-      const leads = (items as UniversalLeadItem[]).filter(item => !!item.business_name)
+      // Filter: must have a name, minimum lead_score >= 30 to skip junk/directory pages
+      const leads = (items as UniversalLeadItem[]).filter(
+        item => !!item.business_name && (item.lead_score ?? 0) >= 30
+      )
 
       for (const item of leads) {
         const orgName = item.business_name ?? null
-        const orgCity = item.city ?? null
-
         if (!orgName) { skipped++; continue }
 
-        // Skip companies outside the target area
-        if (!orgCity || !TARGET_CITIES.has(orgCity.toLowerCase())) { skipped++; continue }
+        // Actor often returns city: null — default to Hamilton since search is already geo-targeted
+        const orgCity = (item.city && TARGET_CITIES.has(item.city.toLowerCase()))
+          ? item.city
+          : 'Hamilton'
 
         // Dedup by business_name + city
         const dedup = await sbGet(
