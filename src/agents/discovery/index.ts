@@ -1,5 +1,5 @@
 import { inngest } from '@/lib/inngest'
-import { postToLeads, section, fields as slackFields, divider } from '@/lib/slack'
+import { postToLeads, section, fields as slackFields, divider } from '@/services/slack'
 
 const SUPABASE_URL  = process.env.SUPABASE_URL!
 const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY!
@@ -7,23 +7,40 @@ const APIFY_TOKEN   = process.env.APIFY_TOKEN!
 
 const PPE_ACTOR = 'peakydev~leads-scraper-ppe'
 
-// PPE industry tags (Apollo taxonomy)
-const INDUSTRIES = ['Insurance', 'Accounting', 'Legal Services']
+// PPE industry tags — must match Apollo taxonomy exactly
+const INDUSTRIES = ['Insurance', 'Accounting', 'Legal', 'Medical']
 
-// Decision-maker seniority targets — valid PPE enum values
-const SENIORITY = ['CEO', 'President', 'CXO', 'Director', 'Founder']
+// Valid seniority values for peakydev~leads-scraper-ppe actor
+// 'Owner' and 'Partner' are NOT valid — actor rejects them silently
+const SENIORITY = ['CEO', 'President', 'CXO', 'Director', 'Founder', 'Chairman', 'Executive', 'Head']
 
-// Target: 20-50 employees → closest Apollo bucket
-const EMPLOYEE_SIZE = ['11 - 50']
+// Broader size range: 11–200 employees
+const EMPLOYEE_SIZE = ['11 - 50', '51 - 200']
 
-// Target: $20-40M revenue → closest PPE bucket
-const REVENUE = ['11M-100M']
-
-// Hamilton / Burlington / Oakville metro — city names as they appear in Apollo data
+// GTA + Hamilton/Burlington/Oakville — city names as they appear in Apollo data
 const TARGET_CITIES = new Set([
-  'hamilton', 'burlington', 'oakville',
-  'ancaster', 'dundas', 'waterdown', 'stoney creek', 'grimsby',
+  // Hamilton metro
+  'hamilton', 'ancaster', 'dundas', 'waterdown', 'stoney creek', 'grimsby',
+  // Halton
+  'burlington', 'oakville', 'milton', 'halton hills',
+  // Toronto
+  'toronto', 'north york', 'scarborough', 'etobicoke', 'york',
+  // Peel
+  'mississauga', 'brampton',
+  // York Region
+  'vaughan', 'markham', 'richmond hill', 'thornhill', 'newmarket', 'aurora', 'king city',
+  // Durham
+  'ajax', 'pickering', 'whitby', 'oshawa',
 ])
+
+// Cities to pass to Apify companyCity filter — narrows results at source
+const APIFY_CITIES = [
+  'Hamilton', 'Burlington', 'Oakville', 'Milton',
+  'Toronto', 'North York', 'Scarborough', 'Etobicoke',
+  'Mississauga', 'Brampton',
+  'Vaughan', 'Markham', 'Richmond Hill', 'Thornhill', 'Newmarket',
+  'Ajax', 'Pickering', 'Whitby', 'Oshawa',
+]
 
 function sbHeaders(extra: Record<string, string> = {}) {
   return {
@@ -138,10 +155,12 @@ export const scraperAgent = inngest.createFunction(
       const allRuns       = await sbGet('scraper_runs?select=id,status&order=started_at.asc')
       const completedRuns = (allRuns as { status: string }[]).filter(r => r.status === 'completed')
       const industryIndex = completedRuns.length % INDUSTRIES.length
-      // Map Slack natural language → PPE taxonomy if override came from Slack
+      // parser.ts now emits canonical Apollo taxonomy names directly
       const rawIndustry = overrideIndustry ?? INDUSTRIES[industryIndex]
-      // Normalize: "Insurance firms" → "Insurance", "Law firms" → "Legal Services"
-      const industryNorm = rawIndustry.replace(/\s+firms?$/i, '').replace(/^law$/i, 'Legal Services')
+      // Safety normalization in case old aliases slip through
+      const industryNorm = rawIndustry
+        .replace(/\s+(firms?|companies|providers?)$/i, '')
+        .replace(/^law$/i, 'Legal')
       return {
         industry:       industryNorm,
         location:       overrideLocation ?? 'Ontario, Canada',
@@ -193,11 +212,11 @@ export const scraperAgent = inngest.createFunction(
         industry:             [industry],
         companyState:         ['Ontario'],
         companyCountry:       ['Canada'],
+        companyCity:          APIFY_CITIES,
         seniority:            SENIORITY,
         companyEmployeeSize:  EMPLOYEE_SIZE,
-        revenue:              REVENUE,
         includeEmails:        true,
-        totalResults:         100,
+        totalResults:         200,
       })
       const ppeRunId = actorResp?.data?.id
       if (!ppeRunId) throw new Error('No run ID from Apify PPE actor')

@@ -2,7 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
-import type { LeadStatus } from '@/lib/types'
+import type { LeadStatus } from '@/types'
 
 function getClient() {
   return createClient(

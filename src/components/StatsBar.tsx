@@ -1,5 +1,5 @@
-import type { Lead, LeadStatus } from '@/lib/types'
-import { STATUS_META } from '@/lib/types'
+import type { Lead, LeadStatus } from '@/types'
+import { STATUS_META } from '@/types'
 
 interface Props { leads: Lead[] }
 

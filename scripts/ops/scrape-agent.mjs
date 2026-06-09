@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 /**
- * scrape-agent.mjs
+ * scrape-agent.mjs — DEMO/LOCAL TESTING ONLY
+ * Uses a different Apify actor (khadinakbar~universal-lead-finder) than production.
+ * Production pipeline runs via Inngest (scraper-agent). Do NOT run this in prod.
+ *
  * Rotating B2B lead scraper — Accounting → Insurance → Law firms
  * Location: Hamilton, Burlington, Oakville, Ontario, Canada
  * Runs 3 times (one per industry), then stops.

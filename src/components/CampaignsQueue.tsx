@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Campaign, CAMPAIGN_STATUS_META } from '@/lib/types'
+import { Campaign, CAMPAIGN_STATUS_META } from '@/types'
 import { updateCampaignStatus, updateCampaignBody } from '@/app/campaigns/actions'
 
 type PainPoint = { signal: string; category: string; pitch_angle: string }

@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState, useMemo, useTransition, useCallback } from 'react'
-import type { Lead, LeadStatus } from '@/lib/types'
-import { STATUS_META } from '@/lib/types'
+import type { Lead, LeadStatus } from '@/types'
+import { STATUS_META } from '@/types'
 import { updateLeadStatus, updateLeadNotes } from '@/app/leads/actions'
 import ExportButton from './ExportButton'
+import LeadDrawer from './LeadDrawer'
 
 /* ── helpers ──────────────────────────────────────────────── */
 function domain(url: string | null) {
@@ -252,6 +253,7 @@ export default function LeadsTable({ leads: initial }: { leads: Lead[] }) {
   const [sortKey, setSortKey] = useState<keyof Lead | null>('created_at')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [isPending, startTransition] = useTransition()
 
   /* sort */
@@ -410,11 +412,16 @@ export default function LeadsTable({ leads: initial }: { leads: Lead[] }) {
                         </button>
                       </td>
 
-                      {/* Business name */}
+                      {/* Business name — click to open intel drawer */}
                       <td className="px-3 py-3 font-semibold whitespace-nowrap max-w-[180px]"
-                          style={{ color: 'var(--text-primary)' }}
-                          onClick={() => toggleExpand(lead.id)}>
-                        <span className="truncate block">{lead.business_name ?? '—'}</span>
+                          style={{ color: 'var(--text-primary)' }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); setSelectedLead(lead) }}
+                          className="truncate block text-left w-full hover:text-blue-600 transition-colors"
+                          title="Click to view lead intelligence"
+                        >
+                          {lead.business_name ?? '—'}
+                        </button>
                       </td>
 
                       {/* Email */}
@@ -515,10 +522,13 @@ export default function LeadsTable({ leads: initial }: { leads: Lead[] }) {
             {filtered.length} lead{filtered.length !== 1 ? 's' : ''}
           </span>
           <span className="text-xs" style={{ color: 'var(--text-faint)' }}>
-            Click any row to expand details + notes
+            Click business name to view intel · Click row to expand notes
           </span>
         </div>
       </div>
+
+      {/* Lead intel drawer */}
+      <LeadDrawer lead={selectedLead} onClose={() => setSelectedLead(null)} />
     </div>
   )
 }
