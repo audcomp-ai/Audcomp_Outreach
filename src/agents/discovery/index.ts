@@ -5,19 +5,13 @@ const SUPABASE_URL  = process.env.SUPABASE_URL!
 const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_KEY!
 const APIFY_TOKEN   = process.env.APIFY_TOKEN!
 
-const PPE_ACTOR = 'peakydev~leads-scraper-ppe'
+// Switched from peakydev~leads-scraper-ppe (Apollo PPE) to khadinakbar~universal-lead-finder
+// (DuckDuckGo + website crawl) while PPE plan is being upgraded.
+const UNIVERSAL_ACTOR = 'khadinakbar~universal-lead-finder'
 
-// PPE industry tags — must match Apollo taxonomy exactly
 const INDUSTRIES = ['Insurance', 'Accounting', 'Legal', 'Medical']
 
-// Valid seniority values for peakydev~leads-scraper-ppe actor
-// 'Owner' and 'Partner' are NOT valid — actor rejects them silently
-const SENIORITY = ['CEO', 'President', 'CXO', 'Director', 'Founder', 'Chairman', 'Executive', 'Head']
-
-// Broader size range: 11–200 employees
-const EMPLOYEE_SIZE = ['11 - 50', '51 - 200']
-
-// GTA + Hamilton/Burlington/Oakville — city names as they appear in Apollo data
+// GTA + Hamilton/Burlington/Oakville — city names as they appear in the actor output
 const TARGET_CITIES = new Set([
   // Hamilton metro
   'hamilton', 'ancaster', 'dundas', 'waterdown', 'stoney creek', 'grimsby',
@@ -32,15 +26,6 @@ const TARGET_CITIES = new Set([
   // Durham
   'ajax', 'pickering', 'whitby', 'oshawa',
 ])
-
-// Cities to pass to Apify companyCity filter — narrows results at source
-const APIFY_CITIES = [
-  'Hamilton', 'Burlington', 'Oakville', 'Milton',
-  'Toronto', 'North York', 'Scarborough', 'Etobicoke',
-  'Mississauga', 'Brampton',
-  'Vaughan', 'Markham', 'Richmond Hill', 'Thornhill', 'Newmarket',
-  'Ajax', 'Pickering', 'Whitby', 'Oshawa',
-]
 
 function sbHeaders(extra: Record<string, string> = {}) {
   return {
@@ -96,46 +81,35 @@ async function apifyGet(path: string) {
   return data
 }
 
-// Parse "11 - 50" → 30 (midpoint), null if unparseable
-function parseOrgSize(size: string | null | undefined): number | null {
-  if (!size) return null
-  const range = size.match(/(\d+)\s*[-–]\s*(\d+)/)
-  if (range) return Math.round((parseInt(range[1]) + parseInt(range[2])) / 2)
-  const single = size.match(/(\d+)\+?/)
-  return single ? parseInt(single[1]) : null
-}
-
-// Score based on data richness and company profile
-function computeLeadScore(item: Record<string, unknown>): number {
-  let score = 60
-  if (item.email)               score += 15
-  if (item.organizationWebsite) score += 5
-  const size = item.organizationSize as string | null
-  // Sweet spot for MSP: 11-200 employees
-  if (size && /^(11|51|101|2 - 10|11 - 50|51 - 200|101 - 500)/.test(size)) score += 10
-  const seniority = (item.seniority as string ?? '').toLowerCase()
-  if (/ceo|president|founder|cxo/.test(seniority)) score += 10
+// Score based on data completeness from universal-lead-finder output
+function computeLeadScore(item: UniversalLeadItem): number {
+  let score = 50
+  if (item.email)        score += 20
+  if (item.phone)        score += 10
+  if (item.website)      score += 10
+  if (item.linkedin_url) score += 5
+  if (item.rating && item.rating >= 4.0) score += 5
   return Math.min(score, 95)
 }
 
-interface PPEItem {
-  personId?: string
-  firstName?: string
-  lastName?: string
-  fullName?: string
-  position?: string
-  linkedinUrl?: string
-  seniority?: string
-  email?: string
-  organizationName?: string
-  organizationWebsite?: string
-  organizationLinkedinUrl?: string
-  organizationIndustry?: string
-  organizationSize?: string
-  organizationDescription?: string
-  organizationCity?: string
-  organizationState?: string
-  organizationCountry?: string
+interface UniversalLeadItem {
+  business_name?: string
+  category?:      string | null
+  address?:       string | null
+  city?:          string | null
+  state?:         string | null
+  zip?:           string | null
+  phone?:         string | null
+  website?:       string | null
+  email?:         string | null
+  all_emails?:    string[]
+  linkedin_url?:  string | null
+  facebook_url?:  string | null
+  twitter_url?:   string | null
+  instagram_url?: string | null
+  rating?:        number | null
+  review_count?:  number | null
+  lead_score?:    number | null
 }
 
 export const scraperAgent = inngest.createFunction(
@@ -187,16 +161,14 @@ export const scraperAgent = inngest.createFunction(
       return { stopped: true, reason: 'run limit reached', completedCount }
     }
 
-    // ── Step 2: Record run + start PPE scrape ────────────────────
-    const { runId, ppeRunId } = await step.run('start-apify', async () => {
-      await Promise.all([
-        postToLeads([
-          section(`:rocket: *Scrape run #${runNumber} started*`),
-          slackFields([
-            `*Industry:* ${industry}`,
-            `*Target:* ${SENIORITY.join(', ')} · Ontario`,
-            `*Completed so far:* ${completedCount}`,
-          ]),
+    // ── Step 2: Record run + start universal lead finder ─────────
+    const { runId, apifyRunId } = await step.run('start-apify', async () => {
+      await postToLeads([
+        section(`:rocket: *Scrape run #${runNumber} started*`),
+        slackFields([
+          `*Industry:* ${industry}`,
+          `*Target:* Hamilton · Burlington · Oakville · Ontario`,
+          `*Completed so far:* ${completedCount}`,
         ]),
       ])
 
@@ -208,88 +180,77 @@ export const scraperAgent = inngest.createFunction(
       }, true)
       const runId = runRow?.[0]?.id
 
-      const actorResp = await apifyPost(`acts/${PPE_ACTOR}/runs`, {
-        industry:             [industry],
-        companyState:         ['Ontario'],
-        companyCountry:       ['Canada'],
-        companyCity:          APIFY_CITIES,
-        seniority:            SENIORITY,
-        companyEmployeeSize:  EMPLOYEE_SIZE,
-        includeEmails:        true,
-        totalResults:         100,
+      const searchQuery = `${industry} companies in Hamilton Burlington Oakville Ontario Canada`
+      const actorResp = await apifyPost(`acts/${UNIVERSAL_ACTOR}/runs`, {
+        searchQuery,
+        location:   'Hamilton, Ontario, Canada',
+        maxResults: 10,
       })
-      const ppeRunId = actorResp?.data?.id
-      if (!ppeRunId) throw new Error('No run ID from Apify PPE actor')
-      await sbPatch(`scraper_runs?id=eq.${runId}`, { apify_run_id: ppeRunId })
+      const apifyRunId = actorResp?.data?.id
+      if (!apifyRunId) throw new Error('No run ID from Apify universal-lead-finder')
+      await sbPatch(`scraper_runs?id=eq.${runId}`, { apify_run_id: apifyRunId })
 
-      return { runId, ppeRunId }
+      return { runId, apifyRunId }
     })
 
-    // ── Step 3: Poll PPE until done ──────────────────────────────
-    let ppeDatasetId: string | null = null
+    // ── Step 3: Poll until done ──────────────────────────────────
+    let datasetId: string | null = null
     for (let attempt = 1; attempt <= 20; attempt++) {
       const result = await step.run(`poll-apify-${attempt}`, async () => {
         await new Promise(r => setTimeout(r, 3000))
-        const runData = await apifyGet(`actor-runs/${ppeRunId}`)
+        const runData = await apifyGet(`actor-runs/${apifyRunId}`)
         return {
           status:    runData?.data?.status as string,
           datasetId: runData?.data?.defaultDatasetId as string,
         }
       })
-      if (result.status === 'SUCCEEDED') { ppeDatasetId = result.datasetId; break }
+      if (result.status === 'SUCCEEDED') { datasetId = result.datasetId; break }
       if (result.status === 'FAILED' || result.status === 'ABORTED') {
-        throw new Error(`PPE actor finished with status: ${result.status}`)
+        throw new Error(`Actor finished with status: ${result.status}`)
       }
     }
-    if (!ppeDatasetId) throw new Error('PPE run timed out')
+    if (!datasetId) throw new Error('Apify run timed out')
 
     // ── Step 4: Fetch results and insert leads ───────────────────
     const { inserted, skipped, newLeadIds } = await step.run('insert-leads', async () => {
-      const items = await apifyGet(`datasets/${ppeDatasetId}/items?limit=100`)
+      const items = await apifyGet(`datasets/${datasetId}/items?limit=10`)
 
       let inserted = 0, skipped = 0
       const newLeadIds: { leadId: string; businessName: string | null }[] = []
 
-      // First 2 dataset rows are status messages (no personId)
-      const leads = (items as PPEItem[]).filter(item => !!item.personId)
+      const leads = (items as UniversalLeadItem[]).filter(item => !!item.business_name)
 
       for (const item of leads) {
-        const orgName = item.organizationName ?? null
-        const orgCity = item.organizationCity ?? null
+        const orgName = item.business_name ?? null
+        const orgCity = item.city ?? null
 
-        // Skip items without a company name
         if (!orgName) { skipped++; continue }
 
-        // Skip companies outside the Hamilton / Burlington / Oakville area
+        // Skip companies outside the target area
         if (!orgCity || !TARGET_CITIES.has(orgCity.toLowerCase())) { skipped++; continue }
 
-        // Dedup by organizationName + city — one lead per company
+        // Dedup by business_name + city
         const dedup = await sbGet(
           `leads?business_name=eq.${encodeURIComponent(orgName)}&city=eq.${encodeURIComponent(orgCity ?? '')}&select=id&limit=1`
         )
         if ((dedup as unknown[]).length > 0) { skipped++; continue }
 
-        const employees = parseOrgSize(item.organizationSize ?? null)
-
         const rows = await sbPost('leads', {
-          business_name:         orgName,
-          email:                 item.email ?? null,
-          phone:                 null,
-          website:               item.organizationWebsite ?? null,
-          linkedin_url:          item.organizationLinkedinUrl ?? null,
-          category:              industry,
-          city:                  orgCity,
-          state:                 'Ontario',
-          lead_score:            computeLeadScore(item as Record<string, unknown>),
-          scraped_at:            new Date().toISOString(),
-          status:                'new',
-          enrichment_status:     'pending',
-          // Contact person (decision maker)
-          contact_name:          item.fullName ?? null,
-          contact_title:         item.position ?? null,
-          // LinkedIn data available immediately from PPE
-          linkedin_employees:    employees,
-          linkedin_description:  item.organizationDescription ?? null,
+          business_name:     orgName,
+          email:             item.email ?? null,
+          phone:             item.phone ?? null,
+          website:           item.website ?? null,
+          linkedin_url:      item.linkedin_url ?? null,
+          category:          industry,
+          city:              orgCity,
+          state:             'Ontario',
+          lead_score:        computeLeadScore(item),
+          scraped_at:        new Date().toISOString(),
+          status:            'new',
+          enrichment_status: 'pending',
+          // Universal finder returns company-level data — no contact person
+          contact_name:      null,
+          contact_title:     null,
         }, true)
 
         const leadId = (rows as { id: string }[])?.[0]?.id
