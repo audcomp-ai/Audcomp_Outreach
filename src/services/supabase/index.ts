@@ -1,18 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Lead } from '@/types'
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Browser client (anon key) — used for client components only
+const publicUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const publicKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+export const supabase = createClient(publicUrl, publicKey)
 
-export const supabase = createClient(url, key)
-
-// Server-side client with no-store to bypass Next.js fetch cache
+// Server client (service role) — bypasses RLS, never reaches the browser
 function serverClient() {
-  return createClient(url, key, {
-    global: {
-      fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
-    },
-  })
+  return createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!,
+    { global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) } }
+  )
 }
 
 export async function fetchLeads(): Promise<Lead[]> {
