@@ -251,9 +251,6 @@ export const scraperAgent = inngest.createFunction(
           scraped_at:        new Date().toISOString(),
           status:            'new',
           enrichment_status: 'pending',
-          // Universal finder returns company-level data — no contact person
-          contact_name:      null,
-          contact_title:     null,
         }, true)
 
         const leadId = (rows as { id: string }[])?.[0]?.id
