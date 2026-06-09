@@ -8,19 +8,39 @@ const APIFY_TOKEN   = process.env.APIFY_TOKEN!
 const PPE_ACTOR = 'peakydev~leads-scraper-ppe'
 
 // PPE industry tags — must match Apollo taxonomy exactly
-const INDUSTRIES = ['Insurance', 'Accounting', 'Legal']
+const INDUSTRIES = ['Insurance', 'Accounting', 'Legal', 'Medical']
 
-// Decision-maker seniority targets — valid PPE enum values
-const SENIORITY = ['CEO', 'President', 'CXO', 'Director', 'Founder', 'Owner', 'Partner']
+// Valid seniority values for peakydev~leads-scraper-ppe actor
+// 'Owner' and 'Partner' are NOT valid — actor rejects them silently
+const SENIORITY = ['CEO', 'President', 'CXO', 'Director', 'Founder', 'Chairman', 'Executive', 'Head']
 
-// Broader size range: 11–200 employees catches more Hamilton-area SMBs
+// Broader size range: 11–200 employees
 const EMPLOYEE_SIZE = ['11 - 50', '51 - 200']
 
-// Hamilton / Burlington / Oakville metro — city names as they appear in Apollo data
+// GTA + Hamilton/Burlington/Oakville — city names as they appear in Apollo data
 const TARGET_CITIES = new Set([
-  'hamilton', 'burlington', 'oakville',
-  'ancaster', 'dundas', 'waterdown', 'stoney creek', 'grimsby',
+  // Hamilton metro
+  'hamilton', 'ancaster', 'dundas', 'waterdown', 'stoney creek', 'grimsby',
+  // Halton
+  'burlington', 'oakville', 'milton', 'halton hills',
+  // Toronto
+  'toronto', 'north york', 'scarborough', 'etobicoke', 'york',
+  // Peel
+  'mississauga', 'brampton',
+  // York Region
+  'vaughan', 'markham', 'richmond hill', 'thornhill', 'newmarket', 'aurora', 'king city',
+  // Durham
+  'ajax', 'pickering', 'whitby', 'oshawa',
 ])
+
+// Cities to pass to Apify companyCity filter — narrows results at source
+const APIFY_CITIES = [
+  'Hamilton', 'Burlington', 'Oakville', 'Milton',
+  'Toronto', 'North York', 'Scarborough', 'Etobicoke',
+  'Mississauga', 'Brampton',
+  'Vaughan', 'Markham', 'Richmond Hill', 'Thornhill', 'Newmarket',
+  'Ajax', 'Pickering', 'Whitby', 'Oshawa',
+]
 
 function sbHeaders(extra: Record<string, string> = {}) {
   return {
@@ -193,6 +213,7 @@ export const scraperAgent = inngest.createFunction(
         industry:             [industry],
         companyState:         ['Ontario'],
         companyCountry:       ['Canada'],
+        companyCity:          APIFY_CITIES,
         seniority:            SENIORITY,
         companyEmployeeSize:  EMPLOYEE_SIZE,
         includeEmails:        true,
