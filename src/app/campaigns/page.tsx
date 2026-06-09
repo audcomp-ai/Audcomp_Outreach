@@ -34,7 +34,7 @@ export default async function CampaignsPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <AutoRefresh intervalMs={30000} />
+      <AutoRefresh intervalMs={10000} />
 
       {/* Top nav */}
       <header className="sticky top-0 z-50 border-b bg-white shadow-sm" style={{ borderColor: 'var(--border)' }}>

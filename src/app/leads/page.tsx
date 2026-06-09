@@ -32,7 +32,7 @@ export default async function LeadsPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <AutoRefresh intervalMs={30000} />
+      <AutoRefresh intervalMs={10000} />
 
       {/* Top nav — Audcomp brand bar */}
       <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-white shadow-sm">
