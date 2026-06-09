@@ -216,7 +216,7 @@ Respond with JSON only (no markdown, no wrapper):
 }`
 
       try {
-        const model  = getGenAI().getGenerativeModel({ model: 'gemini-2.0-flash' })
+        const model  = getGenAI().getGenerativeModel({ model: 'gemini-1.5-flash-8b' })
         const result = await model.generateContent(prompt)
         const raw    = result.response.text().trim()
         const json   = raw.startsWith('{') ? raw : raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)
