@@ -1,5 +1,4 @@
-import { fetchLeads } from '@/services/supabase'
-import { supabase } from '@/services/supabase'
+import { createClient } from '@supabase/supabase-js'
 import type { Lead, ScraperRun } from '@/types'
 import StatsBar from '@/components/StatsBar'
 import LeadsTable from '@/components/LeadsTable'
@@ -8,19 +7,30 @@ import AutoRefresh from '@/components/AutoRefresh'
 
 export const dynamic = 'force-dynamic'
 
+function serverClient() {
+  return createClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!,
+    { global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) } }
+  )
+}
+
 export default async function LeadsPage() {
   let leads: Lead[] = []
   let scraperRuns: ScraperRun[] = []
   let error: string | null = null
+  const db = serverClient()
 
   try {
-    leads = await fetchLeads()
+    const { data, error: err } = await db.from('leads').select('*').order('created_at', { ascending: false })
+    if (err) throw new Error(err.message)
+    leads = (data ?? []) as Lead[]
   } catch (e) {
     error = e instanceof Error ? e.message : 'Failed to load leads'
   }
 
   try {
-    const { data } = await supabase
+    const { data } = await db
       .from('scraper_runs')
       .select('*')
       .order('started_at', { ascending: false })
